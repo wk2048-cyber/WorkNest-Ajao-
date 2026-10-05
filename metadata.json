@@ -1,0 +1,8 @@
+{
+  "name": "Remix WorkNest Ajao",
+  "description": "Pakistani project-based career platform connecting CS \u0026 IT fresh graduates with local startups for paid virtual mini-internships, AI skill verification, direct founder chat, and milestone escrow credentials.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
