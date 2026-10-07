@@ -28,10 +28,18 @@ export const generateObjectId = (): string => {
   return timestamp + random;
 };
 
-const DEFAULT_MONGODB_URI = "mongodb+srv://wk2048_db_user:wk123456@cluster0.wray9yc.mongodb.net/worknest_ajao?retryWrites=true&w=majority";
+// Mongoose bufferCommands: false to fail fast if DB is offline
+mongoose.set('bufferCommands', false);
 
 export const connectDB = async (): Promise<boolean> => {
-  const uri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
+  const uri = process.env.MONGODB_URI;
+
+  if (!uri) {
+    console.log('[WorkNest DB] No MONGODB_URI set — running with in-memory store.');
+    state.isMongooseConnected = false;
+    await seedDefaultData();
+    return false;
+  }
 
   // Prevent unhandled error events from crashing the process
   mongoose.connection.on('error', () => {
@@ -39,19 +47,19 @@ export const connectDB = async (): Promise<boolean> => {
   });
 
   try {
-    console.log('[WorkNest DB] Connecting to live MongoDB Atlas cluster...');
+    console.log('[WorkNest DB] Attempting connection to MongoDB...');
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 5000,
-      connectTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 2000,
+      connectTimeoutMS: 2000,
     });
-    console.log('[WorkNest DB] Live MongoDB Atlas cluster connected successfully!');
+    console.log('[WorkNest DB] MongoDB connected successfully!');
     state.isMongooseConnected = true;
 
-    // Seed Atlas database if empty
+    // Seed database if empty
     try {
       const userCount = await User.countDocuments();
       if (userCount === 0) {
-        console.log('[WorkNest DB] Seeding initial data into live MongoDB Atlas...');
+        console.log('[WorkNest DB] Seeding initial data into MongoDB...');
         await seedAtlasDatabase();
       }
     } catch {
@@ -64,7 +72,7 @@ export const connectDB = async (): Promise<boolean> => {
     } catch {
       // Ignore disconnect error
     }
-    console.log('[WorkNest DB] Operating with high-performance In-Memory Mongoose Compatible Store.');
+    console.log('[WorkNest DB] MongoDB not connected — operating with in-memory store.');
     state.isMongooseConnected = false;
     await seedDefaultData();
     return false;

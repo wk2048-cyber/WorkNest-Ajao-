@@ -10,8 +10,7 @@ import { createServer as createViteServer } from 'vite';
 // Load environment variables
 dotenv.config();
 
-// Fallback environment settings (Ensures server works even if AI Studio clears .env)
-process.env.MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://wk2048_db_user:wk123456@cluster0.wray9yc.mongodb.net/worknest_ajao?retryWrites=true&w=majority";
+// Fallback environment settings
 process.env.JWT_SECRET = process.env.JWT_SECRET || "worknest_secret_jwt_key_pakistan_2026";
 
 // Database initialization
@@ -70,6 +69,7 @@ async function startServer() {
   app.use('/api/auth', authRoutes);
   app.use('/api/internships', internshipRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api', aiRoutes); // Handles /api/verify-skills
   app.use('/api/chat', chatRoutes);
   app.use('/api/payments', paymentRoutes);
   app.use('/api/dev', devRoutes);
@@ -133,6 +133,18 @@ async function startServer() {
     });
     console.log('[WorkNest Server] Static SPA files mounted in production mode.');
   }
+
+  // Database offline error middleware fallback
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    if (err.name === 'MongooseError' || err.name === 'MongoNetworkError' || (err.message && err.message.includes('buffering timed out'))) {
+      console.warn('[AI Studio] Database offline — returning mock empty response');
+      if (req.method === 'GET') {
+        return res.json(req.path.endsWith('s') || req.path.endsWith('s/') ? [] : {});
+      }
+      return res.status(503).json({ error: 'Service temporarily unavailable (database offline)' });
+    }
+    next(err);
+  });
 
   // Central error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
